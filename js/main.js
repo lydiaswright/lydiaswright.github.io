@@ -101,45 +101,90 @@ class PortfolioApp {
     capturePosterAt(video, time = 0.5) {
         if (!video) return;
 
-        const doCapture = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const width = video.videoWidth || 1280;
-            const height = video.videoHeight || 720;
-            canvas.width = width;
-            canvas.height = height;
+        // Use an off-screen clone so we don't change the visible video's currentTime
+        const srcEl = video.querySelector('source');
+        const src = (srcEl && srcEl.src) || video.currentSrc || video.src;
+        if (!src) return;
 
-            const restoreTime = video.currentTime || 0;
+        const off = document.createElement('video');
+        off.muted = true;
+        off.preload = 'auto';
+        off.crossOrigin = 'anonymous';
+        off.src = src;
 
-            const onSeeked = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let settled = false;
+        let cleanup = () => {
+            settled = true;
+            off.pause();
+            off.removeAttribute('src');
+            off.load && off.load();
+            off.remove();
+        };
+
+        const doDraw = () => {
+            try {
+                const width = off.videoWidth || video.videoWidth || 1280;
+                const height = off.videoHeight || video.videoHeight || 720;
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(off, 0, 0, width, height);
                 try {
-                    ctx.drawImage(video, 0, 0, width, height);
                     const dataUrl = canvas.toDataURL('image/jpeg');
                     video.setAttribute('poster', dataUrl);
                 } catch (err) {
-                    // ignore capture errors
-                } finally {
-                    video.removeEventListener('seeked', onSeeked);
-                    try { video.currentTime = restoreTime; } catch (e) {}
+                    // toDataURL can fail under CORS; ignore
                 }
-            };
-
-            video.addEventListener('seeked', onSeeked);
-            const prevMuted = video.muted;
-            video.muted = true;
-            try { video.pause(); } catch (e) {}
-            // clamp time to duration if available
-            const target = (video.duration && time > video.duration) ? Math.max(0, video.duration - 0.1) : time;
-            try { video.currentTime = target; } catch (e) {
-                // some browsers may throw on setting currentTime; ignore
+            } catch (err) {
+                // drawing failed
+            } finally {
+                cleanup();
             }
-            video.muted = prevMuted;
         };
 
-        if (video.readyState >= 2 || video.duration) {
-            doCapture();
-        } else {
-            video.addEventListener('loadedmetadata', doCapture, { once: true });
+        const onError = () => {
+            if (settled) return;
+            cleanup();
+        };
+
+        const onLoadedMeta = () => {
+            if (settled) return;
+            const target = (off.duration && time > off.duration) ? Math.max(0, off.duration - 0.1) : time;
+            const onSeeked = () => {
+                off.removeEventListener('seeked', onSeeked);
+                doDraw();
+            };
+            off.addEventListener('seeked', onSeeked);
+            try { off.currentTime = target; } catch (e) { doDraw(); }
+        };
+
+        // Fallback timeout in case loading/seeking stalls
+        const timeout = setTimeout(() => {
+            if (!settled) {
+                try { off.currentTime = Math.min(0.5, off.duration || 0.5); } catch (e) {}
+                doDraw();
+            }
+        }, 5000);
+
+        off.addEventListener('loadedmetadata', onLoadedMeta, { once: true });
+        off.addEventListener('error', onError, { once: true });
+        off.addEventListener('emptied', onError, { once: true });
+        off.addEventListener('canplay', () => {}, { once: true });
+
+        // ensure cleanup clears timeout
+        const origCleanup = cleanup;
+        cleanup = () => {
+            clearTimeout(timeout);
+            try { origCleanup(); } catch (e) {}
+        };
+
+        // start loading
+        document.body.appendChild(off);
+        // If metadata already available
+        if (off.readyState >= 1) {
+            onLoadedMeta();
         }
     }
 
