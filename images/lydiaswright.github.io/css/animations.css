@@ -1,0 +1,201 @@
+/* Animations */
+
+/* Keyframes */
+@keyframes scrollIndicator {
+    0%, 100% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    50% {
+        opacity: 1;
+        transform: translateY(10px);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes clipPathReveal {
+    from {
+        clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
+    }
+    to {
+        clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+    }
+}
+
+/* Scroll Animations */
+[data-scroll-animate] {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+}
+
+[data-scroll-animate].animated {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Staggered animations for filmography cards */
+.production-card[data-scroll-animate] {
+    transition-delay: calc(var(--stagger-delay, 0) * 80ms);
+}
+
+/* Hero Split Text Animation */
+[data-split-text] {
+    position: relative;
+    display: inline-block;
+}
+
+.split-char {
+    display: inline-block;
+    opacity: 0;
+    animation: fadeIn 0.6s var(--ease-out) forwards;
+    animation-delay: calc(var(--char-index) * 80ms);
+}
+
+/* Hero entrance animation */
+.hero__content {
+    animation: fadeInUp 1s var(--ease-out) 0.5s both;
+}
+
+.hero__tagline {
+    animation: fadeInUp 1s var(--ease-out) 0.8s both;
+}
+
+.hero__scroll {
+    animation: fadeIn 1s var(--ease-out) 1.2s both;
+}
+
+/* Nav entrance */
+.nav {
+    animation: fadeIn 0.6s var(--ease-out);
+}
+
+/* Hover animations */
+.hover-lift {
+    transition: transform var(--transition-base);
+}
+
+.hover-lift:hover {
+    transform: translateY(-4px);
+}
+
+.hover-scale {
+    transition: transform var(--transition-slow);
+}
+
+.hover-scale:hover {
+    transform: scale(1.05);
+}
+
+/* Loading states */
+.loading {
+    position: relative;
+    overflow: hidden;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    to {
+        left: 100%;
+    }
+}
+
+/* Page transitions */
+.page-transition {
+    animation: fadeIn 0.4s var(--ease-out);
+}
+
+/* Focus animations */
+*:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 4px;
+    transition: outline-offset var(--transition-fast);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    [data-scroll-animate] {
+        opacity: 1;
+        transform: none;
+    }
+
+    .split-char {
+        opacity: 1;
+        animation: none;
+    }
+}
